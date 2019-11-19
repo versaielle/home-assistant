@@ -44,6 +44,8 @@ _SRV_EN_AUD = "enable_audio"
 _SRV_DS_AUD = "disable_audio"
 _SRV_EN_MOT_REC = "enable_motion_recording"
 _SRV_DS_MOT_REC = "disable_motion_recording"
+_SRV_EN_SND_REC = "enable_sound_recording"
+_SRV_DS_SND_REC = "disable_sound_recording"
 _SRV_GOTO = "goto_preset"
 _SRV_CBW = "set_color_bw"
 _SRV_TOUR_ON = "start_tour"
@@ -71,6 +73,8 @@ CAMERA_SERVICES = {
     _SRV_DS_AUD: (CAMERA_SERVICE_SCHEMA, "async_disable_audio", ()),
     _SRV_EN_MOT_REC: (CAMERA_SERVICE_SCHEMA, "async_enable_motion_recording", ()),
     _SRV_DS_MOT_REC: (CAMERA_SERVICE_SCHEMA, "async_disable_motion_recording", ()),
+    _SRV_EN_SND_REC: (CAMERA_SERVICE_SCHEMA, "async_enable_sound_recording", ()),
+    _SRV_DS_SND_REC: (CAMERA_SERVICE_SCHEMA, "async_disable_sound_recording", ()),
     _SRV_GOTO: (_SRV_GOTO_SCHEMA, "async_goto_preset", (_ATTR_PRESET,)),
     _SRV_CBW: (_SRV_CBW_SCHEMA, "async_set_color_bw", (_ATTR_COLOR_BW,)),
     _SRV_TOUR_ON: (CAMERA_SERVICE_SCHEMA, "async_start_tour", ()),
@@ -105,10 +109,12 @@ class AmcrestCam(Camera):
         self._token = self._auth = device.authentication
         self._control_light = device.control_light
         self._is_recording = False
+        self._sound_detection_enabled = None
         self._motion_detection_enabled = None
         self._brand = None
         self._model = None
         self._audio_enabled = None
+        self._sound_recording_enabled = None
         self._motion_recording_enabled = None
         self._color_bw = None
         self._rtsp_url = None
@@ -197,6 +203,8 @@ class AmcrestCam(Camera):
         attr = {}
         if self._audio_enabled is not None:
             attr["audio"] = _BOOL_TO_STATE.get(self._audio_enabled)
+        if self._sound_recording_enabled is not None:
+            attr["sound_recording"] = _BOOL_TO_STATE.get(self._sound_recording_enabled)
         if self._motion_recording_enabled is not None:
             attr["motion_recording"] = _BOOL_TO_STATE.get(
                 self._motion_recording_enabled
@@ -226,6 +234,11 @@ class AmcrestCam(Camera):
     def brand(self):
         """Return the camera brand."""
         return self._brand
+
+    @property
+    def sound_detection_enabled(self):
+        """Return the camera sound detection status."""
+        return self._sound_detection_enabled
 
     @property
     def motion_detection_enabled(self):
@@ -300,8 +313,10 @@ class AmcrestCam(Camera):
             self.is_streaming = self._api.video_enabled
             self._is_recording = self._api.record_mode == "Manual"
             self._motion_detection_enabled = self._api.is_motion_detector_on()
+            self._sound_detection_enabled = self._api.is_sound_detector_on()
             self._audio_enabled = self._api.audio_enabled
             self._motion_recording_enabled = self._api.is_record_on_motion_detection()
+            self._sound_recording_enabled = self._api.is_record_on_sound_detection()
             self._color_bw = _CBW[self._api.day_night_color]
             self._rtsp_url = self._api.rtsp_url(typeno=self._resolution)
         except AmcrestError as error:
@@ -320,9 +335,17 @@ class AmcrestCam(Camera):
         """Turn on camera."""
         self._enable_video_stream(True)
 
+    def enable_sound_detection(self):
+        """Enable sound detection in the camera."""
+        self._enable_sound_detection(True)
+
     def enable_motion_detection(self):
         """Enable motion detection in the camera."""
         self._enable_motion_detection(True)
+
+    def disable_sound_detection(self):
+        """Disable sound detection in camera."""
+        self._enable_sound_detection(False)
 
     def disable_motion_detection(self):
         """Disable motion detection in camera."""
@@ -346,9 +369,17 @@ class AmcrestCam(Camera):
         """Call the job and disable audio."""
         await self.hass.async_add_executor_job(self._enable_audio, False)
 
+    async def async_enable_sound_recording(self):
+        """Call the job and enable sound recording."""
+        await self.hass.async_add_executor_job(self._enable_sound_recording, True)
+
     async def async_enable_motion_recording(self):
         """Call the job and enable motion recording."""
         await self.hass.async_add_executor_job(self._enable_motion_recording, True)
+
+    async def async_disable_sound_recording(self):
+        """Call the job and disable sound recording."""
+        await self.hass.async_add_executor_job(self._enable_sound_recording, False)
 
     async def async_disable_motion_recording(self):
         """Call the job and disable motion recording."""
@@ -417,6 +448,22 @@ class AmcrestCam(Camera):
             self._is_recording = enable
             self.schedule_update_ha_state()
 
+    def _enable_sound_detection(self, enable):
+        """Enable or disable sound detection."""
+        try:
+            self._api.sound_detection = str(enable).lower()
+        except AmcrestError as error:
+            log_update_error(
+                _LOGGER,
+                "enable" if enable else "disable",
+                self.name,
+                "camera sound detection",
+                error,
+            )
+        else:
+            self._sound_detection_enabled = enable
+            self.schedule_update_ha_state()
+
     def _enable_motion_detection(self, enable):
         """Enable or disable motion detection."""
         try:
@@ -467,6 +514,22 @@ class AmcrestCam(Camera):
                 "indicator light",
                 error,
             )
+
+    def _enable_sound_recording(self, enable):
+        """Enable or disable sound recording."""
+        try:
+            self._api.sound_recording = str(enable).lower()
+        except AmcrestError as error:
+            log_update_error(
+                _LOGGER,
+                "enable" if enable else "disable",
+                self.name,
+                "camera sound recording",
+                error,
+            )
+        else:
+            self._sound_recording_enabled = enable
+            self.schedule_update_ha_state()
 
     def _enable_motion_recording(self, enable):
         """Enable or disable motion recording."""

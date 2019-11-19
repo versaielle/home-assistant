@@ -8,6 +8,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDevice,
     DEVICE_CLASS_CONNECTIVITY,
     DEVICE_CLASS_MOTION,
+    DEVICE_CLASS_SOUND,
 )
 from homeassistant.const import CONF_NAME, CONF_BINARY_SENSORS
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
@@ -24,10 +25,12 @@ _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(seconds=BINARY_SENSOR_SCAN_INTERVAL_SECS)
 
+BINARY_SENSOR_SOUND_DETECTED = "sound_detected"
 BINARY_SENSOR_MOTION_DETECTED = "motion_detected"
 BINARY_SENSOR_ONLINE = "online"
 # Binary sensor types are defined like: Name, device class
 BINARY_SENSORS = {
+    BINARY_SENSOR_SOUND_DETECTED: ("Sound Detected", DEVICE_CLASS_SOUND),
     BINARY_SENSOR_MOTION_DETECTED: ("Motion Detected", DEVICE_CLASS_MOTION),
     BINARY_SENSOR_ONLINE: ("Online", DEVICE_CLASS_CONNECTIVITY),
 }
@@ -96,6 +99,9 @@ class AmcrestBinarySensor(BinarySensorDevice):
         try:
             if self._sensor_type == BINARY_SENSOR_MOTION_DETECTED:
                 self._state = self._api.is_motion_detected
+
+            elif self._sensor_type == BINARY_SENSOR_SOUND_DETECTED:
+                self._state = self._api.is_sound_detected
 
             elif self._sensor_type == BINARY_SENSOR_ONLINE:
                 self._state = self._api.available

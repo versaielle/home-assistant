@@ -16,11 +16,13 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(seconds=SENSOR_SCAN_INTERVAL_SECS)
 
 SENSOR_MOTION_DETECTOR = "motion_detector"
+SENSOR_SOUND_DETECTOR = "sound_detector"
 SENSOR_PTZ_PRESET = "ptz_preset"
 SENSOR_SDCARD = "sdcard"
 # Sensor types are defined like: Name, units, icon
 SENSORS = {
     SENSOR_MOTION_DETECTOR: ["Motion Detected", None, "mdi:run"],
+    SENSOR_SOUND_DETECTOR: ["Sound Detected", None, "mdi:run"],
     SENSOR_PTZ_PRESET: ["PTZ Preset", None, "mdi:camera-iris"],
     SENSOR_SDCARD: ["SD Used", "%", "mdi:sd"],
 }
@@ -96,6 +98,10 @@ class AmcrestSensor(Entity):
         try:
             if self._sensor_type == SENSOR_MOTION_DETECTOR:
                 self._state = self._api.is_motion_detected
+                self._attrs["Record Mode"] = self._api.record_mode
+
+            elif self._sensor_type == SENSOR_SOUND_DETECTOR:
+                self._state = self._api.is_sound_detected
                 self._attrs["Record Mode"] = self._api.record_mode
 
             elif self._sensor_type == SENSOR_PTZ_PRESET:

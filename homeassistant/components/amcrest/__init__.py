@@ -34,7 +34,10 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send, dispatcher_s
 from homeassistant.helpers.event import track_time_interval
 from homeassistant.helpers.service import async_extract_entity_ids
 
-from .binary_sensor import BINARY_SENSOR_MOTION_DETECTED, BINARY_SENSORS
+from .binary_sensor import (
+    BINARY_SENSOR_MOTION_DETECTED,
+    BINARY_SENSORS,
+)
 from .camera import CAMERA_SERVICES, STREAM_SOURCE_LIST
 from .const import CAMERAS, DOMAIN, DATA_AMCREST, DEVICES, SERVICE_UPDATE
 from .helpers import service_signal
